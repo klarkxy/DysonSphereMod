@@ -2,3 +2,9 @@
 .vs/
 */bin/
 */obj/
+
+*/Release/*.dll
+*/Release/*.pdb
+
+*.rar
+*.zip
