@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace IntelligentTransport
 {
-	[BepInPlugin("klarkxy.dsp.IntelligentTransport", "智能物流计划", "0.1.0")]
+	[BepInPlugin("klarkxy.dsp.IntelligentTransport", "智能物流计划", "0.1.1")]
 	public class IntelligentTransport : BaseUnityPlugin
 	{
 		private static ManualLogSource s_logger;
@@ -22,6 +22,7 @@ namespace IntelligentTransport
 
 		public void Awake()
 		{
+			s_logger = Logger;
 			try
 			{
 				Harmony.CreateAndPatchAll(typeof(IntelligentTransport));
@@ -29,20 +30,24 @@ namespace IntelligentTransport
 			catch (Exception e)
 			{
 				Console.WriteLine(e.ToString());
+				LogInfo(e.ToString());
 			}
-			s_logger = Logger;
 			needSortRemote = new HashSet<int>();
 			needSortLocal = new HashSet<int>();
 		}
 		public void Start()
 		{
-			SortPreFrame = Config.Bind("config", "SortPreFrame", 30, "每秒最多进行的排序次数。");
+			SortPreFrame = Config.Bind("config", "SortPreFrame", 30, "每帧最多进行的排序次数。\nThe maximum number of sorts per frame. ");
+			SortLocal = Config.Bind("config", "SortLocal", true, "是否开启本地物流优化逻辑。\nWhether to enable local transport optimization logic.  ");
+			SortRemote = Config.Bind("config", "SortRemote", true, "是否开启星际物流优化逻辑。\nWhether to enable remote transport optimization logic.  ");
 		}
 		public void Update()
 		{
 			updateThisFrame = SortPreFrame.Value;
 		}
 		private static ConfigEntry<int> SortPreFrame;
+		private static ConfigEntry<bool> SortLocal;
+		private static ConfigEntry<bool> SortRemote;
 		private static int updateThisFrame;
 
 		private static HashSet<int> needSortRemote;
@@ -60,8 +65,10 @@ namespace IntelligentTransport
 		}
 
 		[HarmonyPrefix, HarmonyPatch(typeof(StationComponent), "InternalTickRemote")]
-		public static void InternalTickRemote_Prefix(StationComponent __instance, int timeGene, double dt, float shipSailSpeed, float shipWarpSpeed, int shipCarries, StationComponent[] gStationPool, AstroPose[] astroPoses, VectorLF3 relativePos, Quaternion relativeRot, bool starmap, int[] consumeRegister)
+		public static void InternalTickRemote_Prefix(ref StationComponent __instance, int timeGene, double dt, float shipSailSpeed, float shipWarpSpeed, int shipCarries, StationComponent[] gStationPool, AstroPose[] astroPoses, VectorLF3 relativePos, Quaternion relativeRot, bool starmap, int[] consumeRegister)
 		{
+			if (!SortRemote.Value)
+				return;
 			if (timeGene == __instance.gene)
 			{
 				// 先判断有没有可用的飞船，如果没有就不进行后续的排序
@@ -69,22 +76,24 @@ namespace IntelligentTransport
 					return;
 				if (needSortRemote.Contains(__instance.gid))
 				{
+					int gid = __instance.gid;
+					int planetId = __instance.planetId;
 					// 根据距离对所当前所有的星际飞船进行排序
 					Array.Sort(__instance.remotePairs, (p1, p2) =>
 					{
 						// 获取到对端的星际站
 						int other1 = p1.supplyId, other2 = p2.supplyId;
-						if (other1 == __instance.gid)
+						if (other1 == gid)
 							other1 = p1.demandId;
-						if (other2 == __instance.gid)
+						if (other2 == gid)
 							other2 = p2.demandId;
 						if (other1 == 0) return 1;
 						if (other2 == 0) return -1;
 
 						StationComponent stationComponent1 = gStationPool[other1], stationComponent2 = gStationPool[other2];
 						// 计算到本站到两个星际站的距离
-						double d1 = (astroPoses[__instance.planetId].uPos - astroPoses[stationComponent1.planetId].uPos).sqrMagnitude /* + (double)astroPoses[__instance.planetId].uRadius + (double)astroPoses[stationComponent1.planetId].uRadius*/;
-						double d2 = (astroPoses[__instance.planetId].uPos - astroPoses[stationComponent2.planetId].uPos).sqrMagnitude /* + (double)astroPoses[__instance.planetId].uRadius + (double)astroPoses[stationComponent2.planetId].uRadius*/;
+						double d1 = (astroPoses[planetId].uPos - astroPoses[stationComponent1.planetId].uPos).sqrMagnitude /* + (double)astroPoses[planetId].uRadius + (double)astroPoses[stationComponent1.planetId].uRadius*/;
+						double d2 = (astroPoses[planetId].uPos - astroPoses[stationComponent2.planetId].uPos).sqrMagnitude /* + (double)astroPoses[planetId].uRadius + (double)astroPoses[stationComponent2.planetId].uRadius*/;
 						if (d1 < d2)
 							return -1;
 						if (d1 > d2)
@@ -114,8 +123,10 @@ namespace IntelligentTransport
 		}
 
 		[HarmonyPrefix, HarmonyPatch(typeof(StationComponent), "InternalTickLocal")]
-		public static void InternalTickLocal_Prefix(StationComponent __instance, int timeGene, float dt, float power, float droneSpeed, int droneCarries, StationComponent[] stationPool)
+		public static void InternalTickLocal_Prefix(ref StationComponent __instance, int timeGene, float dt, float power, float droneSpeed, int droneCarries, StationComponent[] stationPool)
 		{
+			if (!SortLocal.Value)
+				return;
 			if (timeGene == __instance.gene % 20)
 			{
 				// 先判断有没有可用的飞船，如果没有就不进行后续的排序
@@ -123,31 +134,24 @@ namespace IntelligentTransport
 					return;
 				if (needSortLocal.Contains(__instance.gid))
 				{
+					int id = __instance.id;
+					Vector3 droneDock = __instance.droneDock;
 					// 根据距离对所当前所有的本地飞船进行排序
 					Array.Sort(__instance.localPairs, (p1, p2) =>
 					{
 						// 获取到对端的行星站
 						int other1 = p1.supplyId, other2 = p2.supplyId;
-						if (other1 == __instance.id)
+						if (other1 == id)
 							other1 = p1.demandId;
-						if (other2 == __instance.id)
+						if (other2 == id)
 							other2 = p2.demandId;
 						if (other1 == 0) return 1;
 						if (other2 == 0) return -1;
 
 						StationComponent stationComponent1 = stationPool[other1], stationComponent2 = stationPool[other2];
 						// 计算到本站到两个行星站的距离
-						double x = __instance.droneDock.x;
-						double y = __instance.droneDock.y;
-						double z = __instance.droneDock.z;
-						double x1 = stationComponent1.droneDock.x;
-						double y1 = stationComponent1.droneDock.y;
-						double z1 = stationComponent1.droneDock.z;
-						double x2 = stationComponent2.droneDock.x;
-						double y2 = stationComponent2.droneDock.y;
-						double z2 = stationComponent2.droneDock.z;
-						double d1 = (__instance.droneDock - stationComponent1.droneDock).sqrMagnitude;
-						double d2 = (__instance.droneDock - stationComponent2.droneDock).sqrMagnitude;
+						double d1 = (droneDock - stationComponent1.droneDock).sqrMagnitude;
+						double d2 = (droneDock - stationComponent2.droneDock).sqrMagnitude;
 						if (d1 < d2)
 							return -1;
 						if (d1 > d2)
