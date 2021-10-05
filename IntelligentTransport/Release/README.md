@@ -10,7 +10,7 @@ Maybe it gets worse?
 ## 实现逻辑（Implementation Logic）
 试图把货物送往最近的物流塔，而不是送往最先插下去的物流塔。
 Try to send the goods to the nearest logistics tower instead of the one that is created first. 
-
+ 
 ## 使用效果（Effects）
 ### 本地物流（Local Transport）
 #### 使用前（Before Use）
