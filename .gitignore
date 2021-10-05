@@ -5,3 +5,6 @@
 
 */Release/*.dll
 */Release/*.pdb
+
+*.rar
+*.zip
