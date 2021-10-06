@@ -16,6 +16,18 @@ Before the mining machine mines the veins within its own range, it will search f
 *When the miner's memory exceeds 45 goods, it will become invalid* 
 
 ## 版本（Version）
+#### v0.1.4
+修复因为虚空采矿导致游戏本身自带的采矿逻辑出错的BUG。
+修复抽水机无效的BUG。
+
+Fix the bug that caused the mining logic of the game itself to be wrong due to the void mining.
+Fix the bug that the pump is invalid. 
+
+Delete the newline character in the configuration file. 
+#### v0.1.3
+删除配置文件里的换行符。
+
+Delete the newline character in the configuration file. 
 #### v0.1.2
 修改虚空挖矿的逻辑，由玩家自行控制每次挖矿获得的数量和两次挖矿之间的间隔。
 

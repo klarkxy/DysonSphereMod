@@ -12,7 +12,7 @@ using UnityEngine;
 namespace VoidMiner
 {
 
-	[BepInPlugin("klarkxy.dsp.VoidMiner", "虚空矿机", "0.1.2")]
+	[BepInPlugin("klarkxy.dsp.VoidMiner", "虚空矿机", "0.1.4")]
 	public class VoidMiner : BaseUnityPlugin
 	{
 		private static ManualLogSource s_logger;
@@ -42,10 +42,10 @@ namespace VoidMiner
 		private static ConfigEntry<uint> frameInterval;
 		public void Start()
 		{
-			extraVeinCount = Config.Bind("config", "ExtraVeinCount", 12u, "每次虚空挖矿获得的矿物数量。\nThe amount of minerals obtained in each void mining. ");
-			extraOilCount = Config.Bind("config", "ExtraOilCount", 6u, "每次虚空炼油获得的石油数量。\nThe amount of oil obtained in each void refining. ");
-			extraWaterCount = Config.Bind("config", "ExtraWaterCount", 6u, "每次虚空抽水获得的水数量。\nThe amount of water obtained for each void pumping. ");
-			frameInterval = Config.Bind("config", "FrameInterval", 60u, "两次虚空挖矿的间隔。\nThe interval between two void mining. ");
+			extraVeinCount = Config.Bind("config", "ExtraVeinCount", 12u, "每次虚空挖矿获得的矿物数量。The amount of minerals obtained in each void mining. ");
+			extraOilCount = Config.Bind("config", "ExtraOilCount", 6u, "每次虚空炼油获得的石油数量。The amount of oil obtained in each void refining. ");
+			extraWaterCount = Config.Bind("config", "ExtraWaterCount", 6u, "每次虚空抽水获得的水数量。The amount of water obtained for each void pumping. ");
+			frameInterval = Config.Bind("config", "FrameInterval", 60u, "两次虚空挖矿的间隔。The interval between two void mining. ");
 		}
 
 		static long frame = 0;
@@ -93,6 +93,21 @@ namespace VoidMiner
 			if (productId == 0)
 				return;
 
+			// 抽水机直接＋就完事了，不用考虑扣东西
+			if (productId == factory.planet.waterItemId)
+			{
+				for (int i = 0; i < extraWaterCount.Value && __instance.productCount < 45; i++)
+				{
+					__instance.productCount++;
+
+					lock (productRegister)
+					{
+						productRegister[productId]++;
+					}
+				}
+				return;
+			}
+
 			int count = 0;
 			for (int i = 0; i < veinPool.Length && __instance.productCount < 45; i++)
 			{
@@ -111,10 +126,6 @@ namespace VoidMiner
 						if (count > extraOilCount.Value)
 							return;
 						break;
-					case EMinerType.Water:
-						if (count > extraWaterCount.Value)
-							return;
-						break;
 				}
 
 				lock (veinPool)
@@ -122,16 +133,12 @@ namespace VoidMiner
 					if (vein.id != 0 && vein.amount > 0)
 					{
 						count++;
-						__instance.time -= __instance.period;
+						//__instance.time -= __instance.period;
 						__instance.productCount++;
 
-						//LogInfo(String.Format("{0}从{1}/{4}获取{2} 数量:{3}", __instance.id, i, productId, __instance.productCount, veinPool.Length));
-
-						int[] obj2 = productRegister;
-						lock (obj2)
+						lock (productRegister)
 						{
 							productRegister[productId]++;
-							//factory.AddVeinTypeMiningFlagUnsafe(vein.type);
 						}
 
 						if (miningRate > 0f)
