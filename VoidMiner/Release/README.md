@@ -18,10 +18,10 @@ Before the mining machine mines the veins within its own range, it will search f
 ## 版本（Version）
 #### v0.1.4
 修复因为虚空采矿导致游戏本身自带的采矿逻辑出错的BUG。
-修复抽水机无效的BUG。
+修复虚空抽水无效的BUG。
 
 Fix the bug that caused the mining logic of the game itself to be wrong due to the void mining.
-Fix the bug that the pump is invalid. 
+Fix the bug that void pumping is invalid. 
 
 Delete the newline character in the configuration file. 
 #### v0.1.3
