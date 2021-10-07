@@ -12,7 +12,7 @@ using UnityEngine;
 namespace VoidMiner
 {
 
-	[BepInPlugin("klarkxy.dsp.VoidMiner", "虚空矿机", "0.1.4")]
+	[BepInPlugin("klarkxy.dsp.VoidMiner", "虚空矿机", "0.1.5")]
 	public class VoidMiner : BaseUnityPlugin
 	{
 		private static ManualLogSource s_logger;
@@ -42,7 +42,7 @@ namespace VoidMiner
 		private static ConfigEntry<uint> frameInterval;
 		public void Start()
 		{
-			extraVeinCount = Config.Bind("config", "ExtraVeinCount", 12u, "每次虚空挖矿获得的矿物数量。The amount of minerals obtained in each void mining. ");
+			extraVeinCount = Config.Bind("config", "ExtraVeinCount", 6u, "每次虚空挖矿获得的矿物数量。The amount of minerals obtained in each void mining. ");
 			extraOilCount = Config.Bind("config", "ExtraOilCount", 6u, "每次虚空炼油获得的石油数量。The amount of oil obtained in each void refining. ");
 			extraWaterCount = Config.Bind("config", "ExtraWaterCount", 6u, "每次虚空抽水获得的水数量。The amount of water obtained for each void pumping. ");
 			frameInterval = Config.Bind("config", "FrameInterval", 60u, "两次虚空挖矿的间隔。The interval between two void mining. ");
@@ -57,18 +57,19 @@ namespace VoidMiner
 		[HarmonyPrefix, HarmonyPatch(typeof(MinerComponent), "InternalUpdate")]
 		public static void InternalUpdate_Prefix(ref MinerComponent __instance, PlanetFactory factory, VeinData[] veinPool, float power, float miningRate, float miningSpeed, int[] productRegister)
 		{
-			if (power < 0.1f)
+				if (power < 0.1f)
 				return;
 
 			if (__instance.productCount >= 45)
 				return;
 
-			if (__instance.veinCount <= 0)
+			if (__instance.type != EMinerType.Water && __instance.veinCount <= 0)
 				return;
 
 			// 没科技的情况下60帧扫一遍
 			if (miningSpeed <= 0)
 				return;
+
 			int baseSpeed = (int)(frameInterval.Value / (miningSpeed));
 			if (baseSpeed <= 0)
 				baseSpeed = 1;
@@ -80,33 +81,33 @@ namespace VoidMiner
 			if (factory == null || veinPool == null)
 				return;
 
-			int productId = __instance.productId;
-
-			if (productId == 0)
-			{
-				if (__instance.type == EMinerType.Water)
-					productId = factory.planet.waterItemId;
-				else for (int i = 0; i < __instance.veinCount && productId == 0; i++)
-						productId = veinPool[__instance.veins[i]].productId;
-			}
-
-			if (productId == 0)
-				return;
-
 			// 抽水机直接＋就完事了，不用考虑扣东西
-			if (productId == factory.planet.waterItemId)
+			if (__instance.type == EMinerType.Water)
 			{
+				LogInfo(String.Format("工厂:{0} 水机:{1} 类型:{2} 产物:{3}({4})", factory.index, __instance.id, __instance.type, factory.planet.waterItemId, __instance.productId));
 				for (int i = 0; i < extraWaterCount.Value && __instance.productCount < 45; i++)
 				{
 					__instance.productCount++;
 
 					lock (productRegister)
 					{
-						productRegister[productId]++;
+						productRegister[factory.planet.waterItemId]++;
 					}
 				}
 				return;
 			}
+
+			// 矿和石油走另外的逻辑
+			int productId = __instance.productId;
+
+			for (int i = 0; i < __instance.veinCount && productId == 0; i++)
+				productId = veinPool[__instance.veins[i]].productId;
+
+			LogInfo(String.Format("工厂:{0} 矿机:{1} 类型:{2} 产物:{3}({4})", factory.index, __instance.id, __instance.type, productId, __instance.productId));
+
+			if (productId == 0)
+				return;
+
 
 			int count = 0;
 			for (int i = 0; i < veinPool.Length && __instance.productCount < 45; i++)
