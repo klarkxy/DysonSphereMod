@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace IntelligentTransport
 {
-	[BepInPlugin("klarkxy.dsp.IntelligentTransport", "智能物流计划", "1.0.0")]
+	[BepInPlugin("klarkxy.dsp.IntelligentTransport", "智能物流计划", "1.0.1")]
 	public class IntelligentTransport : BaseUnityPlugin
 	{
 		private static ManualLogSource s_logger;
@@ -83,6 +83,7 @@ namespace IntelligentTransport
 					return 1;
 				return 0;
 			});
+			__instance.remotePairProcess = 0;
 #if (DEBUG)
 			// 打印排序日志
 			string str = "";
@@ -138,6 +139,7 @@ namespace IntelligentTransport
 					return 1;
 				return 0;
 			});
+			__instance.localPairProcess = 0;
 #if (DEBUG)
 			// 打印排序日志
 			string str = "";
