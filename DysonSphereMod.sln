@@ -5,8 +5,6 @@ VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntelligentTransport", "IntelligentTransport\IntelligentTransport.csproj", "{FFA5190B-EABB-4A59-AEA1-90E5E3F31251}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoidMiner", "VoidMiner\VoidMiner.csproj", "{295B38CA-229D-4CE3-BA0A-4085AA2473EB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -1,17 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BepInEx;
-using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
+using static UnityEngine.EventSystems.EventTrigger;
 
 namespace IntelligentTransport
 {
-	[BepInPlugin("klarkxy.dsp.IntelligentTransport", "智能物流计划", "1.0.1")]
+	[BepInPlugin("klarkxy.dsp.IntelligentTransport", "智能物流计划", "1.0.2")]
 	public class IntelligentTransport : BaseUnityPlugin
 	{
 		private static ManualLogSource s_logger;
@@ -29,7 +25,6 @@ namespace IntelligentTransport
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine(e.ToString());
 				LogInfo(e.ToString());
 			}
 		}
@@ -101,9 +96,9 @@ namespace IntelligentTransport
 		}
 
 		[HarmonyPrefix, HarmonyPatch(typeof(StationComponent), "InternalTickRemote")]
-		public static void InternalTickRemote_Prefix(ref StationComponent __instance, int timeGene, double dt, float shipSailSpeed, float shipWarpSpeed, int shipCarries, StationComponent[] gStationPool, AstroPose[] astroPoses, VectorLF3 relativePos, Quaternion relativeRot, bool starmap, int[] consumeRegister)
+		public static void InternalTickRemote_Prefix(ref StationComponent __instance, PlanetFactory factory, int timeGene, float shipSailSpeed, float shipWarpSpeed, int shipCarries, StationComponent[] gStationPool, AstroData[] astroPoses, ref VectorLF3 relativePos, ref Quaternion relativeRot, bool starmap, int[] consumeRegister)
 		{
-			if (timeGene == __instance.gene)
+			if (timeGene == __instance.gene && __instance.remotePairCount > 0 && __instance.idleShipCount > 0 && __instance.energy > 6000000)
 			{
 				// 把游标挪到0
 				__instance.remotePairProcess = 0;
@@ -156,9 +151,10 @@ namespace IntelligentTransport
 #endif
 		}
 		[HarmonyPrefix, HarmonyPatch(typeof(StationComponent), "InternalTickLocal")]
-		public static void InternalTickLocal_Prefix(ref StationComponent __instance, int timeGene, float dt, float power, float droneSpeed, int droneCarries, StationComponent[] stationPool)
+		public static void InternalTickLocal_Prefix(ref StationComponent __instance, PlanetFactory factory, int timeGene, float power, float droneSpeed, int droneCarries, StationComponent[] stationPool)
 		{
-			if (timeGene == __instance.gene % 20)
+			int num16 = __instance.workDroneCount + __instance.idleDroneCount;
+			if (timeGene == __instance.gene % 20 || (num16 >= 75 && timeGene % 10 == __instance.gene % 10))
 			{
 				// 把游标挪到0
 				__instance.localPairProcess = 0;
