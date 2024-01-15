@@ -1,0 +1,7 @@
+{
+	"name": "IntelligentTransport",
+	"version_number": "1.1.0",
+	"website_url": "https://github.com/klarkxy/DysonSphereMod",
+	"description": "Make the transports more smart.",
+	"dependencies": [ "xiaoye97-BepInEx-5.4.17", "CommonAPI-DSPModSave-1.2.1" ],
+}
